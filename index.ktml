@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>재고 검색</title>
+
+<style>
+
+body{
+font-family:Arial;
+background:#f5f5f5;
+padding:15px;
+}
+
+.container{
+max-width:500px;
+margin:auto;
+background:white;
+padding:20px;
+border-radius:10px;
+}
+
+h2{
+text-align:center;
+margin-bottom:20px;
+}
+
+label{
+font-size:14px;
+}
+
+input{
+width:100%;
+padding:14px;
+margin-top:5px;
+margin-bottom:15px;
+font-size:16px;
+border:1px solid #ccc;
+border-radius:6px;
+}
+
+button{
+width:100%;
+padding:15px;
+font-size:18px;
+background:#007aff;
+color:white;
+border:none;
+border-radius:8px;
+}
+
+table{
+width:100%;
+margin-top:20px;
+border-collapse:collapse;
+font-size:14px;
+}
+
+th,td{
+padding:8px;
+border-bottom:1px solid #ddd;
+text-align:center;
+}
+
+th{
+background:#f0f0f0;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>📦 재고 검색</h2>
+
+<label>모델명</label>
+<input id="model" placeholder="예: 942">
+
+<label>색상</label>
+<input id="color" placeholder="예: 블랙">
+
+<label>보유처</label>
+<input id="owner" placeholder="예: 준호">
+
+<button onclick="search()">검색</button>
+
+<table>
+
+<thead>
+<tr>
+<th>보유처</th>
+<th>모델</th>
+<th>색상</th>
+<th>일련번호</th>
+<th>출고</th>
+</tr>
+</thead>
+
+<tbody id="result"></tbody>
+
+</table>
+
+</div>
+
+<script>
+
+const data=[
+{owner:"준호-폰까페",model:"AIP17-256",color:"블랙",serial:"M24J7DR9VQ",out:47},
+{owner:"민수-모바일",model:"S942",color:"실버쉐도우",serial:"A88KD92LQ1",out:12},
+{owner:"폰마켓",model:"M366",color:"코랄레드",serial:"LQ9D223AA",out:8}
+]
+
+const modelRule={
+"942":["S942"],
+"366":["M366","A366"]
+}
+
+const colorRule={
+"블랙":["블랙","제트블랙"],
+"레드":["레드","코랄레드"],
+"실버":["실버","실버쉐도우"]
+}
+
+function search(){
+
+let model=document.getElementById("model").value
+let color=document.getElementById("color").value
+let owner=document.getElementById("owner").value
+
+let modelList=[model]
+
+if(modelRule[model]){
+modelList=modelRule[model]
+}
+
+let colorList=[color]
+
+if(colorRule[color]){
+colorList=colorRule[color]
+}
+
+let result=data.filter(d=>
+
+(!model || modelList.some(m=>d.model.includes(m))) &&
+(!color || colorList.some(c=>d.color.includes(c))) &&
+(!owner || d.owner.includes(owner))
+
+)
+
+let html=""
+
+result.forEach(r=>{
+
+html+=`
+<tr>
+<td>${r.owner}</td>
+<td>${r.model}</td>
+<td>${r.color}</td>
+<td>${r.serial}</td>
+<td>${r.out}</td>
+</tr>
+`
+
+})
+
+document.getElementById("result").innerHTML=html
+
+}
+
+</script>
+
+</body>
+</html>
