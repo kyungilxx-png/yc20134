@@ -121,6 +121,18 @@ td.place{
 min-width:150px;
 }
 
+.stock-green{
+background:#c8f7c5;
+}
+
+.stock-orange{
+background:#ffe4b5;
+}
+
+.stock-red{
+background:#ffc7c7;
+}
+
 </style>
 
 </head>
@@ -283,6 +295,20 @@ let html=""
 
 list.forEach(r=>{
 
+let days=parseInt(r.출고경과일)||0
+
+let stockClass=""
+
+if(days<=30){
+stockClass="stock-green"
+}
+else if(days<=90){
+stockClass="stock-orange"
+}
+else{
+stockClass="stock-red"
+}
+
 html+=`
 <tr>
 <td>${r.모델명||""}</td>
@@ -290,7 +316,7 @@ html+=`
 <td>${r.일련번호||""}</td>
 <td>${r.상위그룹||""}</td>
 <td class="place">${r.보유처||""}</td>
-<td>${r.출고경과일||""}</td>
+<td class="${stockClass}">${days}</td>
 </tr>
 `
 
