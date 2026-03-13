@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>고양도매 재고 검색</title>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+<style>
+
+body{
+font-family: Arial, sans-serif;
+background:#fff9cc;
+margin:0;
+padding:15px;
+}
+
+.container{
+max-width:650px;
+margin:auto;
+}
+
+/* 로고 영역 */
+
+.header{
+display:flex;
+align-items:center;
+justify-content:center;
+gap:12px;
+margin-bottom:10px;
+}
+
+.logo{
+height:45px;
+}
+
+.title{
+font-size:24px;
+font-weight:bold;
+}
+
+.divider{
+height:1px;
+background:#ddd;
+margin:15px 0 20px 0;
+}
+
+/* 카드 */
+
+.card{
+background:white;
+padding:18px;
+border-radius:12px;
+box-shadow:0 3px 12px rgba(0,0,0,0.1);
+margin-bottom:15px;
+}
+
+.count{
+text-align:center;
+font-weight:bold;
+color:#2c7be5;
+margin-bottom:15px;
+}
+
+input{
+width:100%;
+padding:12px;
+margin-bottom:10px;
+font-size:16px;
+border:1px solid #ddd;
+border-radius:6px;
+box-sizing:border-box;
+}
+
+.filter{
+text-align:center;
+margin-bottom:10px;
+}
+
+.filter button{
+padding:8px 14px;
+margin:3px;
+border:none;
+border-radius:6px;
+background:#eee;
+cursor:pointer;
+}
+
+.filter button.active{
+background:#2c7be5;
+color:white;
+}
+
+.search-btn{
+width:100%;
+padding:12px;
+font-size:16px;
+background:#2c7be5;
+color:white;
+border:none;
+border-radius:6px;
+cursor:pointer;
+margin-top:5px;
+}
+
+/* 테이블 */
+
+.table-card{
+background:white;
+padding:10px;
+border-radius:12px;
+box-shadow:0 3px 12px rgba(0,0,0,0.1);
+}
+
+.table-wrap{
+overflow-x:auto;
+}
+
+table{
+width:100%;
+border-collapse: collapse;
+font-size:14px;
+}
+
+th,td{
+border:1px solid #ddd;
+padding:8px;
+text-align:center;
+}
+
+th{
+background:#f4f6fa;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="header">
+<img src="logo.png" class="logo">
+<div class="title">고양도매 재고 검색</div>
+</div>
+
+<div class="divider"></div>
+
+<div class="card">
+
+<div class="count">
+총 재고 : <span id="total">0</span>
+</div>
+
+<input id="group" placeholder="상위그룹 검색">
+<input id="model" placeholder="모델 검색">
+<input id="color" placeholder="색상 검색">
+<input id="serial" placeholder="일련번호 검색">
+
+<div class="filter">
+
+<button onclick="setGroup('')" class="active">전체</button>
+<button onclick="setGroup('S')">S</button>
+<button onclick="setGroup('M')">M</button>
+<button onclick="setGroup('A')">A</button>
+
+</div>
+
+<button class="search-btn" onclick="search()">검색</button>
+
+</div>
+
+<div class="table-card">
+
+<div class="table-wrap">
+
+<table>
+
+<thead>
+<tr>
+<th>모델</th>
+<th>색상</th>
+<th>일련번호</th>
+<th>상위그룹</th>
+<th>보유처</th>
+<th>출고경과일</th>
+</tr>
+</thead>
+
+<tbody id="result"></tbody>
+
+</table>
+
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+let data=[]
+let selectedGroup=""
+
+fetch("inventory.xlsx")
+.then(res=>res.arrayBuffer())
+.then(buffer=>{
+
+let workbook = XLSX.read(buffer)
+
+let sheet = workbook.Sheets[workbook.SheetNames[0]]
+
+data = XLSX.utils.sheet_to_json(sheet)
+
+render(data)
+
+})
+
+function setGroup(group){
+
+selectedGroup=group
+document.getElementById("group").value=group
+
+document.querySelectorAll(".filter button").forEach(btn=>{
+btn.classList.remove("active")
+})
+
+event.target.classList.add("active")
+
+search()
+
+}
+
+function normalizeModel(model){
+
+model=model.toUpperCase()
+
+if(model=="942") return ["S942"]
+if(model=="366") return ["M366","A366"]
+
+return [model]
+
+}
+
+function normalizeColor(color){
+
+color=color.toLowerCase()
+
+if(color=="블랙") return ["블랙","제트블랙"]
+if(color=="레드") return ["레드","코랄레드"]
+if(color=="실버") return ["실버","실버쉐도우"]
+
+return [color]
+
+}
+
+function search(){
+
+let group=document.getElementById("group").value
+let model=document.getElementById("model").value
+let color=document.getElementById("color").value
+let serial=document.getElementById("serial").value
+
+let modelGroup=normalizeModel(model)
+let colorGroup=normalizeColor(color)
+
+let result=data.filter(row=>{
+
+let groupMatch=row.상위그룹?.includes(group)
+let modelMatch=modelGroup.some(m=>row.모델명?.includes(m))
+let colorMatch=colorGroup.some(c=>row.색상?.includes(c))
+let serialMatch=row.일련번호?.includes(serial)
+
+return groupMatch && modelMatch && colorMatch && serialMatch
+
+})
+
+if(model!=""){
+
+result.sort((a,b)=>{
+
+if(a.상위그룹 > b.상위그룹) return -1
+if(a.상위그룹 < b.상위그룹) return 1
+return 0
+
+})
+
+}
+
+render(result)
+
+}
+
+function render(list){
+
+document.getElementById("total").innerText=list.length
+
+let html=""
+
+list.forEach(r=>{
+
+html+=`
+<tr>
+<td>${r.모델명}</td>
+<td>${r.색상}</td>
+<td>${r.일련번호}</td>
+<td>${r.상위그룹}</td>
+<td>${r.보유처}</td>
+<td>${r.출고경과일}</td>
+</tr>
+`
+
+})
+
+document.getElementById("result").innerHTML=html
+
+}
+
+</script>
+
+</body>
+</html>
