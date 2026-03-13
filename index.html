@@ -121,8 +121,6 @@ background:#f4f6fa;
 .stock-orange{background:#ffe4b5;}
 .stock-red{background:#ffc7c7;}
 
-/* 모바일 카드형 */
-
 @media (max-width:600px){
 
 table thead{
@@ -193,6 +191,9 @@ td:nth-child(6)::before{content:"출고경과일";}
 <datalist id="modelList"></datalist>
 
 <input id="color" placeholder="색상 검색">
+
+<input id="holder" placeholder="보유처 검색">
+
 <input id="serial" placeholder="일련번호 검색">
 
 <button onclick="search()">검색</button>
@@ -301,6 +302,7 @@ function search(){
 let group=document.getElementById("group").value
 let model=document.getElementById("model").value
 let color=document.getElementById("color").value
+let holder=document.getElementById("holder").value
 let serial=document.getElementById("serial").value
 
 let modelGroup=normalizeModel(model)
@@ -311,6 +313,7 @@ let result=rawData.filter(row=>{
 return row.상위그룹?.toString().includes(group)
 && modelGroup.some(m=>row.모델명?.toString().includes(m))
 && colorGroup.some(c=>row.색상?.toString().includes(c))
+&& row.보유처?.toString().includes(holder)
 && row.일련번호?.toString().includes(serial)
 
 })
