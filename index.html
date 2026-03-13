@@ -13,14 +13,14 @@
 <style>
 
 body{
-font-family: Arial, sans-serif;
+font-family: Arial;
 background:#fff9cc;
 margin:0;
 padding:15px;
 }
 
 .container{
-max-width:650px;
+max-width:700px;
 margin:auto;
 }
 
@@ -29,7 +29,6 @@ display:flex;
 align-items:center;
 justify-content:center;
 gap:12px;
-margin-bottom:10px;
 }
 
 .logo{
@@ -44,7 +43,14 @@ font-weight:bold;
 .divider{
 height:1px;
 background:#ddd;
-margin:15px 0 20px 0;
+margin:15px 0 10px 0;
+}
+
+.update-time{
+text-align:center;
+font-size:13px;
+color:#666;
+margin-bottom:15px;
 }
 
 .card{
@@ -60,6 +66,7 @@ text-align:center;
 font-weight:bold;
 color:#2c7be5;
 margin-bottom:15px;
+font-size:18px;
 }
 
 input{
@@ -81,7 +88,6 @@ color:white;
 border:none;
 border-radius:6px;
 cursor:pointer;
-margin-top:5px;
 }
 
 .table-card{
@@ -111,6 +117,10 @@ th{
 background:#f4f6fa;
 }
 
+td.place{
+min-width:150px;
+}
+
 </style>
 
 </head>
@@ -125,6 +135,10 @@ background:#f4f6fa;
 </div>
 
 <div class="divider"></div>
+
+<div class="update-time">
+재고 데이터 업데이트 : <span id="updateTime">확인중...</span>
+</div>
 
 <div class="card">
 
@@ -170,19 +184,34 @@ background:#f4f6fa;
 
 <script>
 
-let data=[]
+let rawData=[]
 
 fetch("inventory.xlsx")
-.then(res=>res.arrayBuffer())
+.then(res=>{
+
+let lastModified=res.headers.get("Last-Modified")
+
+if(lastModified){
+
+let date=new Date(lastModified)
+
+document.getElementById("updateTime").innerText=
+date.toLocaleString("ko-KR")
+
+}
+
+return res.arrayBuffer()
+
+})
 .then(buffer=>{
 
 let workbook = XLSX.read(buffer)
 
 let sheet = workbook.Sheets[workbook.SheetNames[0]]
 
-data = XLSX.utils.sheet_to_json(sheet)
+rawData = XLSX.utils.sheet_to_json(sheet)
 
-render(data)
+render(rawData)
 
 })
 
@@ -219,12 +248,12 @@ let serial=document.getElementById("serial").value
 let modelGroup=normalizeModel(model)
 let colorGroup=normalizeColor(color)
 
-let result=data.filter(row=>{
+let result=rawData.filter(row=>{
 
-let groupMatch=row.상위그룹?.includes(group)
-let modelMatch=modelGroup.some(m=>row.모델명?.includes(m))
-let colorMatch=colorGroup.some(c=>row.색상?.includes(c))
-let serialMatch=row.일련번호?.includes(serial)
+let groupMatch=row.상위그룹?.toString().includes(group)
+let modelMatch=modelGroup.some(m=>row.모델명?.toString().includes(m))
+let colorMatch=colorGroup.some(c=>row.색상?.toString().includes(c))
+let serialMatch=row.일련번호?.toString().includes(serial)
 
 return groupMatch && modelMatch && colorMatch && serialMatch
 
@@ -256,12 +285,12 @@ list.forEach(r=>{
 
 html+=`
 <tr>
-<td>${r.모델명}</td>
-<td>${r.색상}</td>
-<td>${r.일련번호}</td>
-<td>${r.상위그룹}</td>
-<td>${r.보유처}</td>
-<td>${r.출고경과일}</td>
+<td>${r.모델명||""}</td>
+<td>${r.색상||""}</td>
+<td>${r.일련번호||""}</td>
+<td>${r.상위그룹||""}</td>
+<td class="place">${r.보유처||""}</td>
+<td>${r.출고경과일||""}</td>
 </tr>
 `
 
