@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="ko">
-
 <head>
 
 <meta charset="UTF-8">
@@ -96,11 +95,10 @@ button.old{
 background:#ff6b6b;
 }
 
-.table-card{
-background:white;
-padding:8px;
-border-radius:12px;
-box-shadow:0 3px 10px rgba(0,0,0,0.1);
+#modelSummary{
+margin-top:8px;
+font-size:14px;
+line-height:1.6;
 }
 
 table{
@@ -119,17 +117,11 @@ th{
 background:#f4f6fa;
 }
 
-td.place{
-min-width:140px;
-}
-
-/* 재고 상태 색 */
-
 .stock-green{background:#c8f7c5;}
 .stock-orange{background:#ffe4b5;}
 .stock-red{background:#ffc7c7;}
 
-/* 📱 모바일 카드 변환 */
+/* 모바일 카드형 */
 
 @media (max-width:600px){
 
@@ -208,7 +200,14 @@ td:nth-child(6)::before{content:"출고경과일";}
 
 </div>
 
-<div class="table-card">
+<div class="card">
+
+<b>모델별 재고</b>
+<div id="modelSummary"></div>
+
+</div>
+
+<div class="card">
 
 <table>
 
@@ -358,6 +357,34 @@ html+=`
 })
 
 document.getElementById("result").innerHTML=html
+
+updateModelSummary(list)
+
+}
+
+function updateModelSummary(list){
+
+let summary={}
+
+list.forEach(r=>{
+
+let model=r.모델명||"기타"
+
+if(!summary[model]) summary[model]=0
+
+summary[model]++
+
+})
+
+let html=""
+
+Object.keys(summary).sort().forEach(m=>{
+
+html+=`${m} : ${summary[m]}대<br>`
+
+})
+
+document.getElementById("modelSummary").innerHTML=html
 
 }
 
