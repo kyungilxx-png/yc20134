@@ -19,7 +19,8 @@ padding:12px;
 }
 
 .container{
-max-width:900px;
+max-width:720px;
+width:100%;
 margin:auto;
 }
 
@@ -31,7 +32,7 @@ gap:10px;
 }
 
 .logo{
-height:40px;
+height:42px;
 }
 
 .title{
@@ -45,7 +46,7 @@ background:#ddd;
 margin:12px 0;
 }
 
-.update{
+.update-time{
 text-align:center;
 font-size:12px;
 color:#666;
@@ -55,23 +56,24 @@ margin-bottom:10px;
 .card{
 background:white;
 padding:15px;
-border-radius:10px;
-box-shadow:0 3px 8px rgba(0,0,0,0.1);
+border-radius:12px;
+box-shadow:0 3px 10px rgba(0,0,0,0.1);
 margin-bottom:12px;
 }
 
 .count{
 text-align:center;
 font-weight:bold;
-font-size:18px;
+font-size:17px;
 color:#2c7be5;
 margin-bottom:10px;
 }
 
 input{
 width:100%;
-padding:10px;
+padding:11px;
 margin-bottom:8px;
+font-size:15px;
 border:1px solid #ddd;
 border-radius:6px;
 box-sizing:border-box;
@@ -79,10 +81,11 @@ box-sizing:border-box;
 
 button{
 width:100%;
-padding:10px;
-border:none;
+padding:11px;
+font-size:15px;
 background:#2c7be5;
 color:white;
+border:none;
 border-radius:6px;
 cursor:pointer;
 margin-bottom:6px;
@@ -93,13 +96,9 @@ background:#ff6b6b;
 }
 
 #modelSummary{
+margin-top:8px;
 font-size:14px;
 line-height:1.6;
-margin-top:6px;
-}
-
-.table-wrap{
-overflow-x:auto;
 }
 
 table{
@@ -115,12 +114,53 @@ text-align:center;
 }
 
 th{
-background:#f2f4f7;
+background:#f4f6fa;
 }
 
 .stock-green{background:#c8f7c5;}
 .stock-orange{background:#ffe4b5;}
 .stock-red{background:#ffc7c7;}
+
+/* 모바일 카드형 */
+
+@media (max-width:600px){
+
+table thead{
+display:none;
+}
+
+table,tbody,tr,td{
+display:block;
+width:100%;
+}
+
+tr{
+margin-bottom:10px;
+border:1px solid #ddd;
+border-radius:8px;
+padding:6px;
+}
+
+td{
+text-align:left;
+border:none;
+padding:4px 6px;
+}
+
+td::before{
+font-weight:bold;
+display:inline-block;
+width:90px;
+}
+
+td:nth-child(1)::before{content:"모델";}
+td:nth-child(2)::before{content:"색상";}
+td:nth-child(3)::before{content:"일련번호";}
+td:nth-child(4)::before{content:"상위그룹";}
+td:nth-child(5)::before{content:"보유처";}
+td:nth-child(6)::before{content:"출고경과일";}
+
+}
 
 </style>
 
@@ -137,8 +177,8 @@ background:#f2f4f7;
 
 <div class="divider"></div>
 
-<div class="update">
-재고 업데이트 : <span id="updateTime">확인중...</span>
+<div class="update-time">
+재고 데이터 업데이트 : <span id="updateTime">확인중...</span>
 </div>
 
 <div class="card">
@@ -153,11 +193,9 @@ background:#f2f4f7;
 <datalist id="modelList"></datalist>
 
 <input id="color" placeholder="색상 검색">
-
 <input id="serial" placeholder="일련번호 검색">
 
 <button onclick="search()">검색</button>
-
 <button class="old" onclick="oldStock()">90일 이상 재고</button>
 
 </div>
@@ -165,12 +203,11 @@ background:#f2f4f7;
 <div class="card">
 
 <b>모델별 재고</b>
-
 <div id="modelSummary"></div>
 
 </div>
 
-<div class="card table-wrap">
+<div class="card">
 
 <table>
 
@@ -204,7 +241,8 @@ let lastModified=res.headers.get("Last-Modified")
 
 if(lastModified){
 let date=new Date(lastModified)
-document.getElementById("updateTime").innerText=date.toLocaleString("ko-KR")
+document.getElementById("updateTime").innerText=
+date.toLocaleString("ko-KR")
 }
 
 return res.arrayBuffer()
@@ -213,21 +251,18 @@ return res.arrayBuffer()
 .then(buffer=>{
 
 let workbook=XLSX.read(buffer)
-
 let sheet=workbook.Sheets[workbook.SheetNames[0]]
 
 rawData=XLSX.utils.sheet_to_json(sheet)
 
 render(rawData)
-
 makeModelList()
 
 })
 
 function makeModelList(){
 
-let models=[...new Set(rawData.map(r=>r.모델))]
-
+let models=[...new Set(rawData.map(r=>r.모델명))]
 let html=""
 
 models.forEach(m=>{
@@ -243,7 +278,6 @@ function normalizeModel(model){
 model=model.toUpperCase()
 
 if(model=="942") return ["S942"]
-
 if(model=="366") return ["M366","A366"]
 
 return [model]
@@ -255,9 +289,7 @@ function normalizeColor(color){
 color=color.toLowerCase()
 
 if(color=="블랙") return ["블랙","제트블랙"]
-
 if(color=="레드") return ["레드","코랄레드"]
-
 if(color=="실버") return ["실버","실버쉐도우"]
 
 return [color]
@@ -267,23 +299,19 @@ return [color]
 function search(){
 
 let group=document.getElementById("group").value
-
 let model=document.getElementById("model").value
-
 let color=document.getElementById("color").value
-
 let serial=document.getElementById("serial").value
 
 let modelGroup=normalizeModel(model)
-
 let colorGroup=normalizeColor(color)
 
-let result=rawData.filter(r=>{
+let result=rawData.filter(row=>{
 
-return r.상위그룹?.toString().includes(group)
-&& modelGroup.some(m=>r.모델?.toString().includes(m))
-&& colorGroup.some(c=>r.색상?.toString().includes(c))
-&& r.일련번호?.toString().includes(serial)
+return row.상위그룹?.toString().includes(group)
+&& modelGroup.some(m=>row.모델명?.toString().includes(m))
+&& colorGroup.some(c=>row.색상?.toString().includes(c))
+&& row.일련번호?.toString().includes(serial)
 
 })
 
@@ -309,20 +337,20 @@ list.forEach(r=>{
 
 let days=parseInt(r.출고경과일)||0
 
-let cls=""
+let stockClass=""
 
-if(days<=30) cls="stock-green"
-else if(days<=90) cls="stock-orange"
-else cls="stock-red"
+if(days<=30) stockClass="stock-green"
+else if(days<=90) stockClass="stock-orange"
+else stockClass="stock-red"
 
 html+=`
 <tr>
-<td>${r.모델||""}</td>
+<td>${r.모델명||""}</td>
 <td>${r.색상||""}</td>
 <td>${r.일련번호||""}</td>
 <td>${r.상위그룹||""}</td>
 <td>${r.보유처||""}</td>
-<td class="${cls}">${days}</td>
+<td class="${stockClass}">${days}</td>
 </tr>
 `
 
@@ -340,11 +368,11 @@ let summary={}
 
 list.forEach(r=>{
 
-let m=r.모델||"기타"
+let model=r.모델명||"기타"
 
-if(!summary[m]) summary[m]=0
+if(!summary[model]) summary[model]=0
 
-summary[m]++
+summary[model]++
 
 })
 
