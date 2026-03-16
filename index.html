@@ -347,12 +347,12 @@ summary[holder]++
 
 let html=""
 
-Object.keys(summary).sort().forEach(h=>{
+Object.entries(summary).sort((a,b)=>b[1]-a[1]).forEach(([h,count])=>{
 
 html+=`
 <tr onclick="holderDetail('${h}')" style="cursor:pointer">
 <td colspan="5">${h}</td>
-<td>${summary[h]}대</td>
+<td>${count}대</td>
 </tr>
 `
 
