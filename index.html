@@ -1,16 +1,13 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>고양도매 재고 검색</title>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <style>
-
 body{
 font-family:Arial;
 background:#fff9cc;
@@ -168,7 +165,6 @@ td:nth-child(6)::before{content:"출고경과일";}
 }
 
 </style>
-
 </head>
 
 <body>
@@ -205,20 +201,18 @@ td:nth-child(6)::before{content:"출고경과일";}
 
 <button onclick="search()">검색</button>
 <button class="old" onclick="oldStock()">90일 이상 재고</button>
+<button onclick="holderSummary()">보유처별 재고 통계</button>
 
 </div>
 
 <div class="card">
-
 <b>모델별 재고</b>
 <div id="modelSummary"></div>
-
 </div>
 
 <div class="card">
 
 <table>
-
 <thead>
 <tr>
 <th>모델</th>
@@ -337,7 +331,52 @@ render(result)
 
 }
 
+function holderSummary(){
+
+let summary={}
+
+rawData.forEach(r=>{
+
+let holder=r.보유처 || "기타"
+
+if(!summary[holder]) summary[holder]=0
+
+summary[holder]++
+
+})
+
+let html=""
+
+Object.keys(summary).sort().forEach(h=>{
+
+html+=`
+<tr onclick="holderDetail('${h}')" style="cursor:pointer">
+<td colspan="5">${h}</td>
+<td>${summary[h]}대</td>
+</tr>
+`
+
+})
+
+document.getElementById("result").innerHTML=html
+
+document.getElementById("total").innerText=rawData.length
+
+document.getElementById("modelSummary").innerHTML="보유처 클릭하면 상세 재고 표시"
+
+}
+
+function holderDetail(holder){
+
+let result=rawData.filter(r=>r.보유처===holder)
+
+render(result)
+
+}
+
 function render(list){
+
+list.sort((a,b)=> (b.모델명||"").localeCompare(a.모델명||""))
 
 document.getElementById("total").innerText=list.length
 
