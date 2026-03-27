@@ -1,7 +1,16 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>고양도매 재고 검색</title>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
 <style>
 body{
 font-family:Arial;
-background:#fff9cc;
+background:#ffffff;
 margin:0;
 padding:12px;
 }
@@ -41,7 +50,7 @@ padding:15px;
 border-radius:12px;
 box-shadow:0 3px 10px rgba(0,0,0,0.1);
 margin-bottom:12px;
-overflow-x:auto; /* ✅ 추가 */
+overflow-x:auto;
 }
 
 .count{
@@ -87,10 +96,9 @@ th,td{
 border:1px solid #ddd;
 padding:6px;
 text-align:center;
-word-break:break-word; /* ✅ 수정 */
+word-break:break-word;
 }
 
-/* ✅ 컬럼 사이즈 고정 */
 th:nth-child(1), td:nth-child(1){width:16%;}
 th:nth-child(2), td:nth-child(2){width:14%;}
 th:nth-child(3), td:nth-child(3){width:20%;}
@@ -124,7 +132,7 @@ padding:4px 6px;
 td::before{
 font-weight:bold;
 display:inline-block;
-width:70px; /* ✅ 수정 */
+width:70px;
 }
 
 td:nth-child(1)::before{content:"모델";}
@@ -135,3 +143,257 @@ td:nth-child(5)::before{content:"보유처";}
 td:nth-child(6)::before{content:"출고경과일";}
 }
 </style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="header">
+<img src="logo.png" class="logo">
+<div class="title">고양도매 재고 검색</div>
+</div>
+
+<div class="divider"></div>
+
+<div class="update-time">
+재고 데이터 업데이트 : <span id="updateTime">확인중...</span>
+</div>
+
+<div class="card">
+
+<div class="count">
+총 재고 : <span id="total">0</span>
+</div>
+
+<input id="group" placeholder="상위그룹 검색">
+<input id="model" list="modelList" placeholder="모델 검색">
+<datalist id="modelList"></datalist>
+<input id="color" placeholder="색상 검색">
+<input id="holder" placeholder="보유처 검색">
+<input id="serial" placeholder="일련번호 검색">
+
+<button onclick="search()">검색</button>
+<button class="old" onclick="oldStock()">90일 이상 재고</button>
+<button onclick="holderSummary()">보유처별 재고 통계</button>
+
+</div>
+
+<div class="card">
+<b>모델별 재고</b>
+<div id="modelSummary"></div>
+</div>
+
+<div class="card">
+<table>
+<thead>
+<tr>
+<th>모델</th>
+<th>색상</th>
+<th>일련번호</th>
+<th>상위그룹</th>
+<th>보유처</th>
+<th>출고경과일</th>
+</tr>
+</thead>
+<tbody id="result"></tbody>
+</table>
+</div>
+
+</div>
+
+<script>
+let rawData=[]
+let currentList=[]
+
+fetch("inventory.xlsx")
+.then(res=>{
+if(!res.ok) throw new Error("엑셀 파일 없음")
+let lastModified=res.headers.get("Last-Modified")
+if(lastModified){
+let date=new Date(lastModified)
+document.getElementById("updateTime").innerText=
+date.toLocaleString("ko-KR")
+}
+return res.arrayBuffer()
+})
+.then(buffer=>{
+let workbook=XLSX.read(buffer)
+let sheet=workbook.Sheets[workbook.SheetNames[0]]
+rawData=XLSX.utils.sheet_to_json(sheet)
+render(rawData)
+makeModelList()
+})
+.catch(err=>{
+document.getElementById("updateTime").innerText="엑셀 파일 확인 필요"
+console.error(err)
+})
+
+function makeModelList(){
+let models=[...new Set(rawData.map(r=>r.모델명))]
+let html=""
+models.forEach(m=>{ html+=`<option value="${m}">` })
+document.getElementById("modelList").innerHTML=html
+}
+
+function normalizeModel(model){
+model=model.toUpperCase()
+if(model=="942") return ["S942"]
+if(model=="366") return ["M366","A366"]
+return [model]
+}
+
+function normalizeColor(color){
+color=color.toLowerCase()
+if(color=="블랙") return ["블랙","제트블랙"]
+if(color=="레드") return ["레드","코랄레드"]
+if(color=="실버") return ["실버","실버쉐도우"]
+return [color]
+}
+
+function search(){
+let group=document.getElementById("group").value
+let model=document.getElementById("model").value
+let color=document.getElementById("color").value
+let holder=document.getElementById("holder").value
+let serial=document.getElementById("serial").value
+
+let modelGroup=normalizeModel(model)
+let colorGroup=normalizeColor(color)
+
+let result=rawData.filter(row=>{
+return row.상위그룹?.toString().includes(group)
+&& modelGroup.some(m=>row.모델명?.toString().includes(m))
+&& colorGroup.some(c=>row.색상?.toString().includes(c))
+&& row.보유처?.toString().includes(holder)
+&& row.일련번호?.toString().includes(serial)
+})
+
+currentList=result
+
+if(model){
+showHolderColorSummary(result)
+}else{
+render(result)
+}
+}
+
+function showHolderColorSummary(list){
+let summary={}
+
+list.forEach(r=>{
+let holder=r.보유처 || "기타"
+let color=r.색상 || "기타"
+
+if(!summary[holder]) summary[holder]={}
+if(!summary[holder][color]) summary[holder][color]=0
+
+summary[holder][color]++
+})
+
+let html=""
+
+Object.keys(summary).forEach(holder=>{
+let colorText=Object.entries(summary[holder])
+.map(([c,count])=>`${c} ${count}대`)
+.join(" / ")
+
+html+=`
+<tr onclick="holderDetailFromSearch('${holder}')" style="cursor:pointer">
+<td colspan="4">${holder}</td>
+<td colspan="2">${colorText}</td>
+</tr>
+`
+})
+
+document.getElementById("result").innerHTML=html
+document.getElementById("total").innerText=list.length
+updateModelSummary(list)
+}
+
+function holderDetailFromSearch(holder){
+let filtered=currentList.filter(r=>r.보유처===holder)
+render(filtered)
+}
+
+function oldStock(){
+let result=rawData.filter(r=>parseInt(r.출고경과일)>=90)
+render(result)
+}
+
+function holderSummary(){
+let summary={}
+rawData.forEach(r=>{
+let holder=r.보유처 || "기타"
+if(!summary[holder]) summary[holder]=0
+summary[holder]++
+})
+
+let html=""
+Object.entries(summary).forEach(([h,count])=>{
+html+=`
+<tr onclick="holderDetail('${h}')" style="cursor:pointer">
+<td colspan="5">${h}</td>
+<td>${count}대</td>
+</tr>
+`
+})
+
+document.getElementById("result").innerHTML=html
+document.getElementById("total").innerText=rawData.length
+}
+
+function holderDetail(holder){
+let result=rawData.filter(r=>r.보유처===holder)
+render(result)
+}
+
+function render(list){
+document.getElementById("total").innerText=list.length
+
+let html=""
+
+list.forEach(r=>{
+let days=parseInt(r.출고경과일)||0
+let stockClass=""
+
+if(days<=30) stockClass="stock-green"
+else if(days<=90) stockClass="stock-orange"
+else stockClass="stock-red"
+
+html+=`
+<tr>
+<td>${r.모델명||""}</td>
+<td>${r.색상||""}</td>
+<td>${r.일련번호||""}</td>
+<td>${r.상위그룹||""}</td>
+<td>${r.보유처||""}</td>
+<td class="${stockClass}">${days}</td>
+</tr>
+`
+})
+
+document.getElementById("result").innerHTML=html
+updateModelSummary(list)
+}
+
+function updateModelSummary(list){
+let summary={}
+
+list.forEach(r=>{
+let model=r.모델명||"기타"
+if(!summary[model]) summary[model]=0
+summary[model]++
+})
+
+let html=""
+Object.keys(summary).forEach(m=>{
+html+=`${m} : ${summary[m]}대<br>`
+})
+
+document.getElementById("modelSummary").innerHTML=html
+}
+</script>
+
+</body>
+</html>
