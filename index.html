@@ -165,15 +165,25 @@ summary[holder].colors[color]++
 let html=""
 
 Object.entries(summary)
-// 보유처 이름순 정렬
 .sort((a,b)=> a[0].localeCompare(b[0],'ko'))
 .forEach(([h,data])=>{
 
-// 색상 문자열 생성
+// 색상별 컬러 표시
 let colorText = Object.entries(data.colors)
 .sort((a,b)=> a[0].localeCompare(b[0],'ko'))
-.map(([c,count])=> `${c}:${count}`)
-.join(" / ")
+.map(([c,count])=>{
+let bg="#eee"
+if(c.includes("블랙")) bg="#333"
+else if(c.includes("화이트")) bg="#f5f5f5"
+else if(c.includes("레드")) bg="#ff6b6b"
+else if(c.includes("블루")) bg="#4dabf7"
+else if(c.includes("실버")) bg="#adb5bd"
+else if(c.includes("골드")) bg="#fcc419"
+
+let textColor = (bg==="#333") ? "#fff" : "#000"
+
+return `<span style="display:inline-block;padding:2px 6px;margin:1px;border-radius:4px;background:${bg};color:${textColor};font-size:12px">${c}:${count}</span>`
+}).join(" ")
 
 html+=`
 <tr onclick="holderDetail('${h}')" style="cursor:pointer">
@@ -183,15 +193,11 @@ html+=`
 </tr>`
 })
 
-// 요약 표시
 let resultArea=document.getElementById("result")
 resultArea.innerHTML=html
 
-// 총 개수
-let total=list.length
-document.getElementById("total").innerText=total
+document.getElementById("total").innerText=list.length
 
-// 모델 요약 유지
 updateModelSummary(list)
 }
 
