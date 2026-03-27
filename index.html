@@ -92,18 +92,34 @@ button.old{
 background:#ff6b6b;
 }
 
+/* ⭐ 핵심 수정 */
+.table-wrap{
+width:100%;
+overflow-x:auto;
+}
+
+/* ⭐ 핵심 수정 */
 table{
 width:100%;
 border-collapse:collapse;
 font-size:13px;
 table-layout:fixed;
+margin:0 auto; /* 가운데 정렬 */
 }
+
+/* ⭐ 컬럼 비율 고정 */
+colgroup col:nth-child(1){width:15%;}
+colgroup col:nth-child(2){width:10%;}
+colgroup col:nth-child(3){width:20%;}
+colgroup col:nth-child(4){width:15%;}
+colgroup col:nth-child(5){width:25%;}
+colgroup col:nth-child(6){width:15%;}
 
 th,td{
 border:1px solid #ddd;
 padding:6px;
 text-align:center;
-word-break:break-all;
+word-break:break-word; /* ⭐ 변경 */
 }
 
 th{
@@ -114,32 +130,8 @@ background:#f4f6fa;
 .stock-orange{background:#ffe4b5;}
 .stock-red{background:#ffc7c7;}
 
-@media (max-width:600px){
-table thead{display:none;}
-table,tbody,tr,td{display:block;width:100%;}
-tr{
-margin-bottom:10px;
-border:1px solid #ddd;
-border-radius:8px;
-padding:6px;
-}
-td{
-text-align:left;
-border:none;
-padding:4px 6px;
-}
-td::before{
-font-weight:bold;
-display:inline-block;
-width:90px;
-}
-td:nth-child(1)::before{content:"모델";}
-td:nth-child(2)::before{content:"색상";}
-td:nth-child(3)::before{content:"일련번호";}
-td:nth-child(4)::before{content:"상위그룹";}
-td:nth-child(5)::before{content:"보유처";}
-td:nth-child(6)::before{content:"출고경과일";}
-}
+/* ❌ 모바일 테이블 깨는 코드 완전 제거 */
+
 </style>
 </head>
 
@@ -182,18 +174,12 @@ td:nth-child(6)::before{content:"출고경과일";}
 <div id="modelSummary"></div>
 </div>
 
-<div class="card">
+<div class="card table-wrap">
 
 <table>
 
-<!-- ⭐ 컬럼 비율 고정 (핵심 해결) -->
 <colgroup>
-<col style="width:15%">
-<col style="width:10%">
-<col style="width:20%">
-<col style="width:15%">
-<col style="width:25%">
-<col style="width:15%">
+<col><col><col><col><col><col>
 </colgroup>
 
 <thead>
