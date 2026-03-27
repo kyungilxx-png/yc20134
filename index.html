@@ -96,14 +96,14 @@ table{
 width:100%;
 border-collapse:collapse;
 font-size:13px;
-table-layout:fixed; /* ⭐ 추가 */
+table-layout:fixed;
 }
 
 th,td{
 border:1px solid #ddd;
 padding:6px;
 text-align:center;
-word-break:break-all; /* ⭐ 추가 */
+word-break:break-all;
 }
 
 th{
@@ -183,7 +183,19 @@ td:nth-child(6)::before{content:"출고경과일";}
 </div>
 
 <div class="card">
+
 <table>
+
+<!-- ⭐ 컬럼 비율 고정 (핵심 해결) -->
+<colgroup>
+<col style="width:15%">
+<col style="width:10%">
+<col style="width:20%">
+<col style="width:15%">
+<col style="width:25%">
+<col style="width:15%">
+</colgroup>
+
 <thead>
 <tr>
 <th>모델</th>
@@ -194,8 +206,11 @@ td:nth-child(6)::before{content:"출고경과일";}
 <th>출고경과일</th>
 </tr>
 </thead>
+
 <tbody id="result"></tbody>
+
 </table>
+
 </div>
 
 </div>
