@@ -17,21 +17,37 @@ padding:12px;
 
 .container{
 max-width:720px;
+width:100%;
 margin:auto;
 }
 
 .header{
 display:flex;
-justify-content:center;
 align-items:center;
+justify-content:center;
 gap:10px;
 }
 
-.logo{height:42px;}
+.logo{
+height:42px;
+}
 
 .title{
 font-size:22px;
 font-weight:bold;
+}
+
+.divider{
+height:1px;
+background:#ddd;
+margin:12px 0;
+}
+
+.update-time{
+text-align:center;
+font-size:12px;
+color:#666;
+margin-bottom:10px;
 }
 
 .card{
@@ -50,22 +66,37 @@ color:#2c7be5;
 margin-bottom:10px;
 }
 
-input,button{
+input{
 width:100%;
-padding:10px;
-margin-bottom:6px;
-border-radius:6px;
+padding:11px;
+margin-bottom:8px;
+font-size:15px;
 border:1px solid #ddd;
+border-radius:6px;
+box-sizing:border-box;
 }
 
 button{
+width:100%;
+padding:11px;
+font-size:15px;
 background:#2c7be5;
 color:white;
-cursor:pointer;
 border:none;
+border-radius:6px;
+cursor:pointer;
+margin-bottom:6px;
 }
 
-button.old{background:#ff6b6b;}
+button.old{
+background:#ff6b6b;
+}
+
+#modelSummary{
+margin-top:8px;
+font-size:14px;
+line-height:1.6;
+}
 
 table{
 width:100%;
@@ -79,20 +110,60 @@ padding:6px;
 text-align:center;
 }
 
+th{
+background:#f4f6fa;
+}
+
 .stock-green{background:#c8f7c5;}
 .stock-orange{background:#ffe4b5;}
 .stock-red{background:#ffc7c7;}
 
-.holder-btn{
-display:inline-block;
-margin:3px 5px 3px 0;
-padding:3px 8px;
-background:#eef3ff;
-border-radius:6px;
-cursor:pointer;
-color:#2c7be5;
-font-size:13px;
+.stock-green,
+.stock-orange,
+.stock-red{
+box-sizing:border-box;
+width:100%;
 }
+
+@media (max-width:600px){
+
+table thead{
+display:none;
+}
+
+table,tbody,tr,td{
+display:block;
+width:100%;
+}
+
+tr{
+margin-bottom:10px;
+border:1px solid #ddd;
+border-radius:8px;
+padding:6px;
+}
+
+td{
+text-align:left;
+border:none;
+padding:4px 6px;
+}
+
+td::before{
+font-weight:bold;
+display:inline-block;
+width:90px;
+}
+
+td:nth-child(1)::before{content:"모델";}
+td:nth-child(2)::before{content:"색상";}
+td:nth-child(3)::before{content:"일련번호";}
+td:nth-child(4)::before{content:"상위그룹";}
+td:nth-child(5)::before{content:"보유처";}
+td:nth-child(6)::before{content:"출고경과일";}
+
+}
+
 </style>
 </head>
 
@@ -105,21 +176,32 @@ font-size:13px;
 <div class="title">고양도매 재고 검색</div>
 </div>
 
+<div class="divider"></div>
+
+<div class="update-time">
+재고 데이터 업데이트 : <span id="updateTime">확인중...</span>
+</div>
+
 <div class="card">
 
 <div class="count">
 총 재고 : <span id="total">0</span>
 </div>
 
-<input id="group" placeholder="상위그룹">
-<input id="model" placeholder="모델">
-<input id="color" placeholder="색상">
-<input id="holder" placeholder="보유처">
-<input id="serial" placeholder="일련번호">
+<input id="group" placeholder="상위그룹 검색">
+
+<input id="model" list="modelList" placeholder="모델 검색">
+<datalist id="modelList"></datalist>
+
+<input id="color" placeholder="색상 검색">
+
+<input id="holder" placeholder="보유처 검색">
+
+<input id="serial" placeholder="일련번호 검색">
 
 <button onclick="search()">검색</button>
-<button class="old" onclick="oldStock()">90일 이상</button>
-<button onclick="holderSummary()">보유처 통계</button>
+<button class="old" onclick="oldStock()">90일 이상 재고</button>
+<button onclick="holderSummary()">보유처별 재고 통계</button>
 
 </div>
 
@@ -129,6 +211,7 @@ font-size:13px;
 </div>
 
 <div class="card">
+
 <table>
 <thead>
 <tr>
@@ -140,8 +223,11 @@ font-size:13px;
 <th>출고경과일</th>
 </tr>
 </thead>
+
 <tbody id="result"></tbody>
+
 </table>
+
 </div>
 
 </div>
@@ -151,70 +237,201 @@ font-size:13px;
 let rawData=[]
 
 fetch("inventory.xlsx")
-.then(res=>res.arrayBuffer())
+.then(res=>{
+
+let lastModified=res.headers.get("Last-Modified")
+
+if(lastModified){
+let date=new Date(lastModified)
+document.getElementById("updateTime").innerText=
+date.toLocaleString("ko-KR")
+}
+
+return res.arrayBuffer()
+
+})
 .then(buffer=>{
+
 let workbook=XLSX.read(buffer)
 let sheet=workbook.Sheets[workbook.SheetNames[0]]
+
 rawData=XLSX.utils.sheet_to_json(sheet)
+
 render(rawData)
+makeModelList()
+
 })
+
+function makeModelList(){
+
+let models=[...new Set(rawData.map(r=>r.모델명))]
+let html=""
+
+models.forEach(m=>{
+html+=`<option value="${m}">`
+})
+
+document.getElementById("modelList").innerHTML=html
+
+}
+
+function normalizeModel(model){
+
+model=model.toUpperCase()
+
+if(model=="942") return ["S942"]
+if(model=="366") return ["M366","A366"]
+
+return [model]
+
+}
+
+function normalizeColor(color){
+
+color=color.toLowerCase()
+
+if(color=="블랙") return ["블랙","제트블랙"]
+if(color=="레드") return ["레드","코랄레드"]
+if(color=="실버") return ["실버","실버쉐도우"]
+
+return [color]
+
+}
 
 function search(){
 
-let group=groupInput()
-let model=modelInput()
-let color=colorInput()
-let holder=holderInput()
-let serial=serialInput()
+let group=document.getElementById("group").value
+let model=document.getElementById("model").value
+let color=document.getElementById("color").value
+let holder=document.getElementById("holder").value
+let serial=document.getElementById("serial").value
 
-let result=rawData.filter(r=>
-(r.상위그룹||"").includes(group) &&
-(r.모델명||"").includes(model) &&
-(r.색상||"").includes(color) &&
-(r.보유처||"").includes(holder) &&
-(r.일련번호||"").includes(serial)
-)
+let modelGroup=normalizeModel(model)
+let colorGroup=normalizeColor(color)
+
+let result=rawData.filter(row=>{
+
+return row.상위그룹?.toString().includes(group)
+&& modelGroup.some(m=>row.모델명?.toString().includes(m))
+&& colorGroup.some(c=>row.색상?.toString().includes(c))
+&& row.보유처?.toString().includes(holder)
+&& row.일련번호?.toString().includes(serial)
+
+})
 
 render(result)
+
 }
 
-function groupInput(){return document.getElementById("group").value}
-function modelInput(){return document.getElementById("model").value}
-function colorInput(){return document.getElementById("color").value}
-function holderInput(){return document.getElementById("holder").value}
-function serialInput(){return document.getElementById("serial").value}
-
 function oldStock(){
-render(rawData.filter(r=>parseInt(r.출고경과일)>=90))
+
+let result=rawData.filter(r=>parseInt(r.출고경과일)>=90)
+
+render(result)
+
 }
 
 function holderSummary(){
 
+let htmlButtons=`
+<div style="margin-bottom:8px">
+<button onclick="filterNameSummary('준호')">준호</button>
+<button onclick="filterNameSummary('대형')">대형</button>
+<button onclick="filterNameSummary('민기')">민기</button>
+<button onclick="filterNameSummary('세미')">세미</button>
+</div>
+`
+
+document.getElementById("modelSummary").innerHTML=
+"보유처별 재고 통계 (이름 선택 가능)"+htmlButtons
+
 let summary={}
 
 rawData.forEach(r=>{
-let h=r.보유처||"기타"
-summary[h]=(summary[h]||0)+1
+
+let holder=r.보유처 || "기타"
+
+if(!summary[holder]) summary[holder]=0
+
+summary[holder]++
+
 })
 
 let html=""
 
-Object.entries(summary).forEach(([h,count])=>{
+Object.entries(summary)
+.sort((a,b)=> a[0].localeCompare(b[0],'ko') || (b[1]-a[1]))
+.forEach(([h,count])=>{
+
 html+=`
 <tr onclick="holderDetail('${h}')" style="cursor:pointer">
 <td colspan="5">${h}</td>
 <td>${count}대</td>
-</tr>`
+</tr>
+`
+
 })
 
 document.getElementById("result").innerHTML=html
+
+document.getElementById("total").innerText=rawData.length
+
+}
+
+function filterNameSummary(name){
+
+let filtered=rawData.filter(r=>{
+
+let holder=r.보유처 || ""
+
+return holder.includes(name) || holder==="M&S고양도매센터_햇빛사무실점"
+
+})
+
+let summary={}
+
+filtered.forEach(r=>{
+
+let holder=r.보유처 || "기타"
+
+if(!summary[holder]) summary[holder]=0
+
+summary[holder]++
+
+})
+
+let html=""
+
+Object.entries(summary)
+.sort((a,b)=> a[0].localeCompare(b[0],'ko') || (b[1]-a[1]))
+.forEach(([h,count])=>{
+
+html+=`
+<tr onclick="holderDetail('${h}')" style="cursor:pointer">
+<td colspan="5">${h}</td>
+<td>${count}대</td>
+</tr>
+`
+
+})
+
+document.getElementById("result").innerHTML=html
+
+document.getElementById("total").innerText=filtered.length
+
 }
 
 function holderDetail(holder){
-render(rawData.filter(r=>r.보유처===holder))
+
+let result=rawData.filter(r=>r.보유처===holder)
+
+render(result)
+
 }
 
 function render(list){
+
+list.sort((a,b)=> (b.모델명||"").localeCompare(a.모델명||""))
 
 document.getElementById("total").innerText=list.length
 
@@ -223,7 +440,12 @@ let html=""
 list.forEach(r=>{
 
 let days=parseInt(r.출고경과일)||0
-let cls=days<=30?"stock-green":days<=90?"stock-orange":"stock-red"
+
+let stockClass=""
+
+if(days<=30) stockClass="stock-green"
+else if(days<=90) stockClass="stock-orange"
+else stockClass="stock-red"
 
 html+=`
 <tr>
@@ -232,13 +454,16 @@ html+=`
 <td>${r.일련번호||""}</td>
 <td>${r.상위그룹||""}</td>
 <td>${r.보유처||""}</td>
-<td class="${cls}">${days}</td>
-</tr>`
+<td class="${stockClass}">${days}</td>
+</tr>
+`
+
 })
 
 document.getElementById("result").innerHTML=html
 
 updateModelSummary(list)
+
 }
 
 function updateModelSummary(list){
@@ -247,15 +472,11 @@ let summary={}
 
 list.forEach(r=>{
 
-let m=r.모델명||"기타"
-let h=r.보유처||"기타"
+let model=r.모델명||"기타"
 
-if(!summary[m]){
-summary[m]={total:0,holders:{}}
-}
+if(!summary[model]) summary[model]=0
 
-summary[m].total++
-summary[m].holders[h]=(summary[m].holders[h]||0)+1
+summary[model]++
 
 })
 
@@ -263,20 +484,12 @@ let html=""
 
 Object.keys(summary).sort().forEach(m=>{
 
-let data=summary[m]
-
-html+=`<div style="margin-bottom:10px">`
-html+=`<b>${m} : ${data.total}대</b><br>`
-
-Object.entries(data.holders).forEach(([h,count])=>{
-html+=`<span class="holder-btn" onclick="holderDetail('${h}')">${h} (${count})</span>`
-})
-
-html+=`</div>`
+html+=`${m} : ${summary[m]}대<br>`
 
 })
 
 document.getElementById("modelSummary").innerHTML=html
+
 }
 
 </script>
