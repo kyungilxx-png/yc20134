@@ -10,7 +10,7 @@
 <style>
 body{
 font-family:Arial;
-background:#ffffff;
+background:#fff9cc;
 margin:0;
 padding:12px;
 }
@@ -28,8 +28,14 @@ justify-content:center;
 gap:10px;
 }
 
-.logo{height:42px;}
-.title{font-size:22px;font-weight:bold;}
+.logo{
+height:42px;
+}
+
+.title{
+font-size:22px;
+font-weight:bold;
+}
 
 .divider{
 height:1px;
@@ -50,7 +56,6 @@ padding:15px;
 border-radius:12px;
 box-shadow:0 3px 10px rgba(0,0,0,0.1);
 margin-bottom:12px;
-overflow-x:auto;
 }
 
 .count{
@@ -83,30 +88,27 @@ cursor:pointer;
 margin-bottom:6px;
 }
 
-button.old{background:#ff6b6b;}
+button.old{
+background:#ff6b6b;
+}
 
 table{
 width:100%;
 border-collapse:collapse;
 font-size:13px;
-table-layout:fixed;
+table-layout:fixed; /* ⭐ 추가 */
 }
 
 th,td{
 border:1px solid #ddd;
 padding:6px;
 text-align:center;
-word-break:break-word;
+word-break:break-all; /* ⭐ 추가 */
 }
 
-th:nth-child(1), td:nth-child(1){width:16%;}
-th:nth-child(2), td:nth-child(2){width:14%;}
-th:nth-child(3), td:nth-child(3){width:20%;}
-th:nth-child(4), td:nth-child(4){width:16%;}
-th:nth-child(5), td:nth-child(5){width:18%;}
-th:nth-child(6), td:nth-child(6){width:16%;}
-
-th{background:#f4f6fa;}
+th{
+background:#f4f6fa;
+}
 
 .stock-green{background:#c8f7c5;}
 .stock-orange{background:#ffe4b5;}
@@ -115,26 +117,22 @@ th{background:#f4f6fa;}
 @media (max-width:600px){
 table thead{display:none;}
 table,tbody,tr,td{display:block;width:100%;}
-
 tr{
 margin-bottom:10px;
 border:1px solid #ddd;
 border-radius:8px;
 padding:6px;
 }
-
 td{
 text-align:left;
 border:none;
 padding:4px 6px;
 }
-
 td::before{
 font-weight:bold;
 display:inline-block;
-width:70px;
+width:90px;
 }
-
 td:nth-child(1)::before{content:"모델";}
 td:nth-child(2)::before{content:"색상";}
 td:nth-child(3)::before{content:"일련번호";}
@@ -203,12 +201,12 @@ td:nth-child(6)::before{content:"출고경과일";}
 </div>
 
 <script>
+
 let rawData=[]
 let currentList=[]
 
 fetch("inventory.xlsx")
 .then(res=>{
-if(!res.ok) throw new Error("엑셀 파일 없음")
 let lastModified=res.headers.get("Last-Modified")
 if(lastModified){
 let date=new Date(lastModified)
@@ -223,10 +221,6 @@ let sheet=workbook.Sheets[workbook.SheetNames[0]]
 rawData=XLSX.utils.sheet_to_json(sheet)
 render(rawData)
 makeModelList()
-})
-.catch(err=>{
-document.getElementById("updateTime").innerText="엑셀 파일 확인 필요"
-console.error(err)
 })
 
 function makeModelList(){
@@ -252,6 +246,7 @@ return [color]
 }
 
 function search(){
+
 let group=document.getElementById("group").value
 let model=document.getElementById("model").value
 let color=document.getElementById("color").value
@@ -279,6 +274,7 @@ render(result)
 }
 
 function showHolderColorSummary(list){
+
 let summary={}
 
 list.forEach(r=>{
@@ -293,7 +289,10 @@ summary[holder][color]++
 
 let html=""
 
-Object.keys(summary).forEach(holder=>{
+Object.keys(summary)
+.sort((a,b)=>a.localeCompare(b,'ko'))
+.forEach(holder=>{
+
 let colorText=Object.entries(summary[holder])
 .map(([c,count])=>`${c} ${count}대`)
 .join(" / ")
@@ -308,6 +307,7 @@ html+=`
 
 document.getElementById("result").innerHTML=html
 document.getElementById("total").innerText=list.length
+
 updateModelSummary(list)
 }
 
@@ -322,6 +322,7 @@ render(result)
 }
 
 function holderSummary(){
+
 let summary={}
 rawData.forEach(r=>{
 let holder=r.보유처 || "기타"
@@ -330,7 +331,10 @@ summary[holder]++
 })
 
 let html=""
-Object.entries(summary).forEach(([h,count])=>{
+
+Object.entries(summary)
+.sort((a,b)=> a[0].localeCompare(b[0],'ko'))
+.forEach(([h,count])=>{
 html+=`
 <tr onclick="holderDetail('${h}')" style="cursor:pointer">
 <td colspan="5">${h}</td>
@@ -349,11 +353,15 @@ render(result)
 }
 
 function render(list){
+
+list.sort((a,b)=> (b.모델명||"").localeCompare(a.모델명||""))
+
 document.getElementById("total").innerText=list.length
 
 let html=""
 
 list.forEach(r=>{
+
 let days=parseInt(r.출고경과일)||0
 let stockClass=""
 
@@ -378,6 +386,7 @@ updateModelSummary(list)
 }
 
 function updateModelSummary(list){
+
 let summary={}
 
 list.forEach(r=>{
@@ -387,12 +396,14 @@ summary[model]++
 })
 
 let html=""
-Object.keys(summary).forEach(m=>{
+
+Object.keys(summary).sort().forEach(m=>{
 html+=`${m} : ${summary[m]}대<br>`
 })
 
 document.getElementById("modelSummary").innerHTML=html
 }
+
 </script>
 
 </body>
