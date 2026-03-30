@@ -16,7 +16,7 @@ padding:12px;
 }
 
 .container{
-max-width:720px;
+max-width:700px;
 width:100%;
 margin:auto;
 }
@@ -92,18 +92,31 @@ button.old{
 background:#ff6b6b;
 }
 
+.person-btns{
+display:flex;
+gap:6px;
+margin-bottom:8px;
+}
+.person-btns button{
+flex:1;
+padding:8px;
+font-size:13px;
+background:#6c757d;
+}
+
+
 table{
 width:100%;
 border-collapse:collapse;
 font-size:13px;
-table-layout:fixed; /* ⭐ 추가 */
+table-layout:fixed;
 }
 
 th,td{
 border:1px solid #ddd;
 padding:6px;
 text-align:center;
-word-break:break-all; /* ⭐ 추가 */
+word-break:break-all;
 }
 
 th{
@@ -114,32 +127,6 @@ background:#f4f6fa;
 .stock-orange{background:#ffe4b5;}
 .stock-red{background:#ffc7c7;}
 
-@media (max-width:600px){
-table thead{display:none;}
-table,tbody,tr,td{display:block;width:100%;}
-tr{
-margin-bottom:10px;
-border:1px solid #ddd;
-border-radius:8px;
-padding:6px;
-}
-td{
-text-align:left;
-border:none;
-padding:4px 6px;
-}
-td::before{
-font-weight:bold;
-display:inline-block;
-width:90px;
-}
-td:nth-child(1)::before{content:"모델";}
-td:nth-child(2)::before{content:"색상";}
-td:nth-child(3)::before{content:"일련번호";}
-td:nth-child(4)::before{content:"상위그룹";}
-td:nth-child(5)::before{content:"보유처";}
-td:nth-child(6)::before{content:"출고경과일";}
-}
 </style>
 </head>
 
@@ -173,7 +160,7 @@ td:nth-child(6)::before{content:"출고경과일";}
 
 <button onclick="search()">검색</button>
 <button class="old" onclick="oldStock()">90일 이상 재고</button>
-<button onclick="holderSummary()">보유처별 재고 통계</button>
+<button onclick="holderSummary(rawData)">보유처별 재고 통계</button>
 
 </div>
 
@@ -203,117 +190,80 @@ td:nth-child(6)::before{content:"출고경과일";}
 <script>
 
 let rawData=[]
-let currentList=[]
 
 fetch("inventory.xlsx")
-.then(res=>{
-let lastModified=res.headers.get("Last-Modified")
-if(lastModified){
-let date=new Date(lastModified)
-document.getElementById("updateTime").innerText=
-date.toLocaleString("ko-KR")
-}
-return res.arrayBuffer()
-})
+.then(res=>res.arrayBuffer())
 .then(buffer=>{
 let workbook=XLSX.read(buffer)
 let sheet=workbook.Sheets[workbook.SheetNames[0]]
 rawData=XLSX.utils.sheet_to_json(sheet)
 render(rawData)
-makeModelList()
 })
 
-function makeModelList(){
-let models=[...new Set(rawData.map(r=>r.모델명))]
-let html=""
-models.forEach(m=>{ html+=`<option value="${m}">` })
-document.getElementById("modelList").innerHTML=html
-}
-
-function normalizeModel(model){
-model=model.toUpperCase()
-if(model=="942") return ["S942"]
-if(model=="366") return ["M366","A366"]
-return [model]
-}
-
-function normalizeColor(color){
-color=color.toLowerCase()
-if(color=="블랙") return ["블랙","제트블랙"]
-if(color=="레드") return ["레드","코랄레드"]
-if(color=="실버") return ["실버","실버쉐도우"]
-return [color]
-}
-
 function search(){
-
 let group=document.getElementById("group").value
 let model=document.getElementById("model").value
 let color=document.getElementById("color").value
 let holder=document.getElementById("holder").value
 let serial=document.getElementById("serial").value
 
-let modelGroup=normalizeModel(model)
-let colorGroup=normalizeColor(color)
+let result=rawData.filter(r=>
+r.상위그룹?.includes(group)
+&& r.모델명?.includes(model)
+&& r.색상?.includes(color)
+&& r.보유처?.includes(holder)
+&& r.일련번호?.includes(serial)
+)
 
-let result=rawData.filter(row=>{
-return row.상위그룹?.toString().includes(group)
-&& modelGroup.some(m=>row.모델명?.toString().includes(m))
-&& colorGroup.some(c=>row.색상?.toString().includes(c))
-&& row.보유처?.toString().includes(holder)
-&& row.일련번호?.toString().includes(serial)
-})
-
-currentList=result
-
-if(model){
-showHolderColorSummary(result)
-}else{
 render(result)
 }
-}
 
-function showHolderColorSummary(list){
+/* ⭐ 2단계 구조 */
+function holderSummary(data){
 
 let summary={}
-
-list.forEach(r=>{
-let holder=r.보유처 || "기타"
-let color=r.색상 || "기타"
-
-if(!summary[holder]) summary[holder]={}
-if(!summary[holder][color]) summary[holder][color]=0
-
-summary[holder][color]++
+data.forEach(r=>{
+let h=r.보유처||"기타"
+if(!summary[h]) summary[h]=0
+summary[h]++
 })
 
-let html=""
+let html=`
+<tr>
+<td colspan="6">
+<div class="person-btns">
+<button onclick="personFilter('준호')">준호</button>
+<button onclick="personFilter('민기')">민기</button>
+<button onclick="personFilter('대형')">대형</button>
+<button onclick="personFilter('세미')">세미</button>
+</div>
+</td>
+</tr>`
 
-Object.keys(summary)
-.sort((a,b)=>a.localeCompare(b,'ko'))
-.forEach(holder=>{
-
-let colorText=Object.entries(summary[holder])
-.map(([c,count])=>`${c} ${count}대`)
-.join(" / ")
-
+Object.entries(summary)
+.sort((a,b)=>a[0].localeCompare(b[0],'ko'))
+.forEach(([h,count])=>{
 html+=`
-<tr onclick="holderDetailFromSearch('${holder}')" style="cursor:pointer">
-<td colspan="4">${holder}</td>
-<td colspan="2">${colorText}</td>
-</tr>
-`
+<tr onclick="holderDetail('${h}', ${JSON.stringify(data).replace(/"/g,'&quot;')})" style="cursor:pointer">
+<td colspan="5">${h}</td>
+<td>${count}대</td>
+</tr>`
 })
 
 document.getElementById("result").innerHTML=html
-document.getElementById("total").innerText=list.length
-
-updateModelSummary(list)
 }
 
-function holderDetailFromSearch(holder){
-let filtered=currentList.filter(r=>r.보유처===holder)
-render(filtered)
+/* 1단계: 담당자 → 보유처 목록 */
+function personFilter(name){
+let filtered=rawData.filter(r=>r.보유처?.includes(name))
+holderSummary(filtered)
+}
+
+/* 2단계: 보유처 → 상세 */
+function holderDetail(holder, data){
+let list = data || rawData
+let result=list.filter(r=>r.보유처===holder)
+render(result)
 }
 
 function oldStock(){
@@ -321,87 +271,20 @@ let result=rawData.filter(r=>parseInt(r.출고경과일)>=90)
 render(result)
 }
 
-function holderSummary(){
-
-let summary={}
-rawData.forEach(r=>{
-let holder=r.보유처 || "기타"
-if(!summary[holder]) summary[holder]=0
-summary[holder]++
-})
-
-let html=""
-
-Object.entries(summary)
-.sort((a,b)=> a[0].localeCompare(b[0],'ko'))
-.forEach(([h,count])=>{
-html+=`
-<tr onclick="holderDetail('${h}')" style="cursor:pointer">
-<td colspan="5">${h}</td>
-<td>${count}대</td>
-</tr>
-`
-})
-
-document.getElementById("result").innerHTML=html
-document.getElementById("total").innerText=rawData.length
-}
-
-function holderDetail(holder){
-let result=rawData.filter(r=>r.보유처===holder)
-render(result)
-}
-
 function render(list){
-
-list.sort((a,b)=> (b.모델명||"").localeCompare(a.모델명||""))
-
 document.getElementById("total").innerText=list.length
-
 let html=""
-
 list.forEach(r=>{
-
-let days=parseInt(r.출고경과일)||0
-let stockClass=""
-
-if(days<=30) stockClass="stock-green"
-else if(days<=90) stockClass="stock-orange"
-else stockClass="stock-red"
-
-html+=`
-<tr>
+html+=`<tr>
 <td>${r.모델명||""}</td>
 <td>${r.색상||""}</td>
 <td>${r.일련번호||""}</td>
 <td>${r.상위그룹||""}</td>
 <td>${r.보유처||""}</td>
-<td class="${stockClass}">${days}</td>
-</tr>
-`
+<td>${r.출고경과일||""}</td>
+</tr>`
 })
-
 document.getElementById("result").innerHTML=html
-updateModelSummary(list)
-}
-
-function updateModelSummary(list){
-
-let summary={}
-
-list.forEach(r=>{
-let model=r.모델명||"기타"
-if(!summary[model]) summary[model]=0
-summary[model]++
-})
-
-let html=""
-
-Object.keys(summary).sort().forEach(m=>{
-html+=`${m} : ${summary[m]}대<br>`
-})
-
-document.getElementById("modelSummary").innerHTML=html
 }
 
 </script>
