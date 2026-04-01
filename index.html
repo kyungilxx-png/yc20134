@@ -17,7 +17,7 @@
         background: #fff9cc;
         margin: 0;
         padding: 10px;
-        overflow-x: hidden; /* 가로 스크롤 방지 */
+        overflow-x: hidden; 
     }
 
     .container {
@@ -50,7 +50,7 @@
         border-radius: 12px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         margin-bottom: 12px;
-        width: 100%; /* 카드 너비 고정 */
+        width: 100%; 
     }
 
     .count {
@@ -61,9 +61,8 @@
         margin-bottom: 12px;
     }
 
-    /* 입력창 및 메인 버튼 레이아웃 수정 */
     input, button.main-btn {
-        width: 100%; /* 박스 사이징 덕분에 100% 해도 튀어나가지 않음 */
+        width: 100%; 
         padding: 12px;
         margin-bottom: 8px;
         font-size: 15px;
@@ -82,7 +81,6 @@
 
     button.main-btn.old { background: #ff6b6b; }
 
-    /* 보유처 그룹 버튼 영역 */
     .group-container {
         display: none; 
         grid-template-columns: repeat(2, 1fr);
@@ -102,12 +100,11 @@
         cursor: pointer;
     }
 
-    /* 테이블 스타일 최적화 */
     table {
         width: 100%;
         border-collapse: collapse;
         font-size: 12px;
-        table-layout: fixed; /* 칸 너비 고정 */
+        table-layout: fixed; 
     }
 
     th, td {
@@ -125,7 +122,6 @@
 
     #modelSummary { font-size: 13px; line-height: 1.6; }
 
-    /* 모바일 환경 대응 (표가 깨지거나 넘치지 않게) */
     @media (max-width: 600px) {
         table thead { display: none; }
         table, tbody, tr, td { display: block; width: 100%; }
@@ -145,7 +141,7 @@
         }
         td:last-child { border-bottom: none; }
         td::before {
-            content: attr(data-label); /* data-label로 구분자 표시 */
+            content: attr(data-label); 
             font-weight: bold;
             width: 90px;
             flex-shrink: 0;
@@ -167,7 +163,6 @@
     <div class="card">
         <div class="count">총 재고 : <span id="total">0</span></div>
         
-        <input id="group" placeholder="상위그룹 검색">
         <input id="model" list="modelList" placeholder="모델 검색">
         <datalist id="modelList"></datalist>
         <input id="color" placeholder="색상 검색">
@@ -247,7 +242,6 @@ function normalizeColor(color){
 
 function search(){
     hideGroups();
-    let group = document.getElementById("group").value.trim();
     let model = document.getElementById("model").value.trim();
     let color = document.getElementById("color").value.trim();
     let holder = document.getElementById("holder").value.trim();
@@ -257,8 +251,7 @@ function search(){
     let colorGroup = normalizeColor(color);
 
     let result = rawData.filter(row => {
-        return (row.상위그룹||"").toString().includes(group)
-        && (model === "" || modelGroup.some(m=>(row.모델명||"").toString().includes(m)))
+        return (model === "" || modelGroup.some(m=>(row.모델명||"").toString().includes(m)))
         && (color === "" || colorGroup.some(c=>(row.색상||"").toString().includes(c)))
         && (row.보유처||"").toString().includes(holder)
         && (row.일련번호||"").toString().includes(serial);
