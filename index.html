@@ -6,117 +6,163 @@
 <title>고양도매 재고 검색</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <style>
-    /* 기본 스타일 및 배경색 유지 */
-    body{font-family:'Malgun Gothic', dotum, arial; background:#fff9cc; margin:0; padding:12px;}
-    .container{max-width:720px; width:100%; margin:auto;}
-    
-    /* 헤더 스타일 */
-    .header{display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom: 12px;}
-    .logo{height:42px;}
-    .title{font-size:22px; font-weight:bold; color: #333;}
-    
-    /* 구분선 및 업데이트 시간 */
-    .divider{height:1px; background:#ddd; margin:12px 0;}
-    .update-time{text-align:center; font-size:12px; color:#666; margin-bottom:10px;}
-    
-    /* 카드 스타일 유지 */
-    .card{background:white; padding:15px; border-radius:12px; box-shadow:0 3px 10px rgba(0,0,0,0.1); margin-bottom:12px;}
-    
-    /* 총 재고 수사 */
-    .count{text-align:center; font-weight:bold; font-size:17px; color:#2c7be5; margin-bottom:15px;}
-    
-    /* ⭐⭐⭐ 검색창/버튼 정렬 수정 핵심 부분 ⭐⭐⭐ */
-    /* 부모 컨테이너의 padding을 고려하여 너비를 calc로 계산 */
-    input, button.main-btn {
-        width: calc(100% - 24px); /* 좌우 padding 11px + 보더 1px씩 총 24px 제외 */
-        padding: 11px;
+    /* 모든 요소의 박스 크기 계산 방식 고정 (오른쪽 넘침 방지) */
+    * {
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+        font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+        background: #fff9cc;
+        margin: 0;
+        padding: 10px;
+        overflow-x: hidden; /* 가로 스크롤 방지 */
+    }
+
+    .container {
+        max-width: 720px;
+        width: 100%;
+        margin: auto;
+    }
+
+    .header {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        padding: 10px 0;
+    }
+
+    .logo { height: 35px; }
+    .title { font-size: 20px; font-weight: bold; }
+
+    .update-time {
+        text-align: center;
+        font-size: 11px;
+        color: #666;
         margin-bottom: 10px;
+    }
+
+    .card {
+        background: white;
+        padding: 15px;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        margin-bottom: 12px;
+        width: 100%; /* 카드 너비 고정 */
+    }
+
+    .count {
+        text-align: center;
+        font-weight: bold;
+        font-size: 17px;
+        color: #2c7be5;
+        margin-bottom: 12px;
+    }
+
+    /* 입력창 및 메인 버튼 레이아웃 수정 */
+    input, button.main-btn {
+        width: 100%; /* 박스 사이징 덕분에 100% 해도 튀어나가지 않음 */
+        padding: 12px;
+        margin-bottom: 8px;
         font-size: 15px;
         border-radius: 6px;
-        display: block; /* 블록 요소로 변경 */
-        margin-left: auto; /* 가운데 정렬 */
-        margin-right: auto;
-    }
-    
-    input {
         border: 1px solid #ddd;
-        box-sizing: content-box; /* padding을 너비 외부에 둠 */
     }
-    
-    /* 메인 버튼 스타일 (검색, 90일 이상, 보유처 통계) */
+
     button.main-btn {
         background: #2c7be5;
         color: white;
         border: none;
         cursor: pointer;
         font-weight: bold;
-        box-sizing: border-box; /* padding을 너비 내부에 포함 (input과 맞추기 위해) */
-        width: 100%; /* 부모 너비 전체 사용 */
+        margin-bottom: 5px;
     }
-    
-    button.main-btn.old { background: #ff6b6b; } /* 90일 이상 버튼색 */
-    
-    /* 보유처 그룹 버튼 영역 (민기, 준호 등) */
+
+    button.main-btn.old { background: #ff6b6b; }
+
+    /* 보유처 그룹 버튼 영역 */
     .group-container {
-        display: none; /* 초기에는 숨김 */
+        display: none; 
         grid-template-columns: repeat(2, 1fr);
         gap: 8px;
         margin-top: 5px;
-        margin-bottom: 10px;
-        padding: 0 5px; /* 살짝 여백 */
+        margin-bottom: 5px;
     }
-    
-    /* 그룹 버튼 자체 스타일 */
+
     .btn-group {
         background: #5c6bc0;
         color: white;
         border: none;
-        padding: 11px;
+        padding: 12px;
         font-size: 14px;
         border-radius: 6px;
         font-weight: bold;
         cursor: pointer;
-        width: 100%; /* 그리드 칸에 맞춤 */
     }
 
-    /* 테이블 스타일 유지 */
-    table{width:100%; border-collapse:collapse; font-size:13px; table-layout:fixed;}
-    th,td{border:1px solid #ddd; padding:6px; text-align:center; word-break:break-all;}
-    th{background:#f4f6fa; color: #555;}
-    
-    /* 재고 색상 표시 유지 */
-    .stock-green{background:#c8f7c5;}
-    .stock-orange{background:#ffe4b5;}
-    .stock-red{background:#ffc7c7;}
-    
-    /* 모델별 재고 요약 스타일 */
-    #modelSummary { font-size: 14px; line-height: 1.6; color: #444; }
+    /* 테이블 스타일 최적화 */
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+        table-layout: fixed; /* 칸 너비 고정 */
+    }
 
-    /* 모바일 반응형 스타일 유지 */
-    @media (max-width:600px){
-        table thead{display:none;}
-        table,tbody,tr,td{display:block; width:100%;}
-        tr{margin-bottom:10px; border:1px solid #ddd; border-radius:8px; padding:6px; background: #fff;}
-        td{text-align:left; border:none; padding:4px 6px; border-bottom: 1px solid #eee;}
-        td:last-child {border-bottom: none;}
-        td::before{font-weight:bold; display:inline-block; width:90px; color: #777;}
-        td:nth-child(1)::before{content:"모델";}
-        td:nth-child(2)::before{content:"색상";}
-        td:nth-child(3)::before{content:"일련번호";}
-        td:nth-child(4)::before{content:"상위그룹";}
-        td:nth-child(5)::before{content:"보유처";}
-        td:nth-child(6)::before{content:"출고경과일";}
+    th, td {
+        border: 1px solid #eee;
+        padding: 8px 4px;
+        text-align: center;
+        word-break: break-all;
+    }
+
+    th { background: #f8f9fa; color: #333; }
+
+    .stock-green { background: #c8f7c5; }
+    .stock-orange { background: #ffe4b5; }
+    .stock-red { background: #ffc7c7; }
+
+    #modelSummary { font-size: 13px; line-height: 1.6; }
+
+    /* 모바일 환경 대응 (표가 깨지거나 넘치지 않게) */
+    @media (max-width: 600px) {
+        table thead { display: none; }
+        table, tbody, tr, td { display: block; width: 100%; }
+        tr {
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 8px;
+            background: #fff;
+        }
+        td {
+            text-align: left;
+            border: none;
+            padding: 4px 0;
+            display: flex;
+            border-bottom: 1px dotted #eee;
+        }
+        td:last-child { border-bottom: none; }
+        td::before {
+            content: attr(data-label); /* data-label로 구분자 표시 */
+            font-weight: bold;
+            width: 90px;
+            flex-shrink: 0;
+            color: #555;
+        }
     }
 </style>
 </head>
 <body>
+
 <div class="container">
     <div class="header">
         <img src="logo.png" class="logo" alt="로고">
         <div class="title">고양도매 재고 검색</div>
     </div>
     
-    <div class="update-time">재고 데이터 업데이트 : <span id="updateTime">확인중...</span></div>
+    <div class="update-time">데이터 업데이트 : <span id="updateTime">-</span></div>
     
     <div class="card">
         <div class="count">총 재고 : <span id="total">0</span></div>
@@ -141,20 +187,19 @@
     </div>
     
     <div class="card">
-        <div style="margin-bottom: 8px; font-weight: bold; border-bottom: 1px solid #eee; padding-bottom: 5px;">모델별 재고 현황</div>
+        <div style="font-weight:bold; margin-bottom:10px; font-size:14px;">[모델별 요약]</div>
         <div id="modelSummary"></div>
     </div>
     
-    <div class="card" style="padding: 10px;">
+    <div class="card" style="padding: 5px;">
         <table>
             <thead>
                 <tr>
-                    <th>모델</th>
+                    <th style="width:25%;">모델</th>
                     <th>색상</th>
-                    <th>일련번호</th>
-                    <th>상위그룹</th>
+                    <th style="width:20%;">일련번호</th>
                     <th>보유처</th>
-                    <th>경과일</th>
+                    <th style="width:15%;">경과일</th>
                 </tr>
             </thead>
             <tbody id="result"></tbody>
@@ -163,171 +208,139 @@
 </div>
 
 <script>
-/* 스크립트 로직은 이전과 동일하게 유지됨 */
 let rawData=[];
 let currentList=[];
 
-// 엑셀 파일 로드 및 초기화
 fetch("inventory.xlsx")
-.then(res=>{
-    let lastModified=res.headers.get("Last-Modified");
-    if(lastModified){
-        let date=new Date(lastModified);
-        document.getElementById("updateTime").innerText=date.toLocaleString("ko-KR");
-    }
-    return res.arrayBuffer();
-})
-.then(buffer=>{
-    try {
-        let workbook=XLSX.read(buffer);
-        let sheet=workbook.Sheets[workbook.SheetNames[0]];
-        rawData=XLSX.utils.sheet_to_json(sheet);
-        render(rawData);
-        makeModelList();
-    } catch (e) {
-        console.error("엑셀 파일 로드 실패:", e);
-        document.getElementById("result").innerHTML = "<tr><td colspan='6'>inventory.xlsx 파일을 찾을 수 없거나 읽을 수 없습니다.</td></tr>";
-    }
+.then(res => res.arrayBuffer())
+.then(buffer => {
+    let workbook = XLSX.read(buffer);
+    let sheet = workbook.Sheets[workbook.SheetNames[0]];
+    rawData = XLSX.utils.sheet_to_json(sheet);
+    render(rawData);
+    makeModelList();
+    document.getElementById("updateTime").innerText = new Date().toLocaleString();
 });
 
-// 모델 검색 자동완성 목록 만들기
 function makeModelList(){
-    let models=[...new Set(rawData.map(r=>r.모델명).filter(Boolean))];
-    let html="";
-    models.forEach(m=>{ html+=`<option value="${m}">` });
-    document.getElementById("modelList").innerHTML=html;
+    let models = [...new Set(rawData.map(r => r.모델명).filter(Boolean))];
+    let html = "";
+    models.forEach(m => { html += `<option value="${m}">` });
+    document.getElementById("modelList").innerHTML = html;
 }
 
-// 모델명 검색 정규화 유지
 function normalizeModel(model){
     if(!model) return [];
-    model=model.toUpperCase().trim();
+    model = model.toUpperCase().trim();
     if(model=="942") return ["S942"];
     if(model=="366") return ["M366","A366"];
     return [model];
 }
 
-// 색상 검색 정규화 유지
 function normalizeColor(color){
     if(!color) return [];
-    color=color.toLowerCase().trim();
+    color = color.toLowerCase().trim();
     if(color=="블랙") return ["블랙","제트블랙"];
     if(color=="레드") return ["레드","코랄레드"];
-    if(color=="실버") return ["실버","실버쉐도우"];
     return [color];
 }
 
-// 통합 검색 기능
 function search(){
-    hideGroups(); // 검색 시 그룹 버튼 숨김
-    let group=document.getElementById("group").value.trim();
-    let model=document.getElementById("model").value.trim();
-    let color=document.getElementById("color").value.trim();
-    let holder=document.getElementById("holder").value.trim();
-    let serial=document.getElementById("serial").value.trim();
+    hideGroups();
+    let group = document.getElementById("group").value.trim();
+    let model = document.getElementById("model").value.trim();
+    let color = document.getElementById("color").value.trim();
+    let holder = document.getElementById("holder").value.trim();
+    let serial = document.getElementById("serial").value.trim();
     
-    let modelGroup=normalizeModel(model);
-    let colorGroup=normalizeColor(color);
+    let modelGroup = normalizeModel(model);
+    let colorGroup = normalizeColor(color);
 
-    let result=rawData.filter(row=>{
+    let result = rawData.filter(row => {
         return (row.상위그룹||"").toString().includes(group)
         && (model === "" || modelGroup.some(m=>(row.모델명||"").toString().includes(m)))
         && (color === "" || colorGroup.some(c=>(row.색상||"").toString().includes(c)))
         && (row.보유처||"").toString().includes(holder)
         && (row.일련번호||"").toString().includes(serial);
     });
-    currentList=result;
+    currentList = result;
     
-    // 모델명 검색시에만 보유처별 색상 요약 보여줌
     if(model && result.length > 0) showHolderColorSummary(result);
     else render(result);
 }
 
-// 모델 검색 시 보유처별 색상 요약 화면
 function showHolderColorSummary(list){
-    let summary={};
-    list.forEach(r=>{
-        let h=r.보유처||"기타"; let c=r.색상||"기타";
-        if(!summary[h]) summary[h]={};
-        if(!summary[h][c]) summary[h][c]=0;
+    let summary = {};
+    list.forEach(r => {
+        let h = r.보유처||"기타"; let c = r.색상||"기타";
+        if(!summary[h]) summary[h] = {};
+        if(!summary[h][c]) summary[h][c] = 0;
         summary[h][c]++;
     });
-    let html="";
-    Object.keys(summary).sort((a,b)=>a.localeCompare(b,'ko')).forEach(h=>{
-        let colorText=Object.entries(summary[h]).map(([c,count])=>`${c} ${count}대`).join(" / ");
-        // 클릭 시 해당 보유처 상세 내역으로 이동
-        html+=`<tr onclick="holderDetailFromSearch('${h}')" style="cursor:pointer; background:#f9f9f9;"><td colspan="4" style="text-align:left; font-weight:bold; padding-left:15px;">${h}</td><td colspan="2" style="color:#666;">${colorText}</td></tr>`;
+    let html = "";
+    Object.keys(summary).sort().forEach(h => {
+        let colorText = Object.entries(summary[h]).map(([c,cnt])=>`${c}${cnt}`).join("/");
+        html += `<tr onclick="holderDetailFromSearch('${h}')" style="cursor:pointer; background:#fdfdfd;"><td colspan="3" style="text-align:left; padding-left:10px;">${h}</td><td colspan="2" style="color:#2c7be5; font-size:11px;">${colorText}</td></tr>`;
     });
-    document.getElementById("result").innerHTML=html;
-    document.getElementById("total").innerText=list.length;
+    document.getElementById("result").innerHTML = html;
+    document.getElementById("total").innerText = list.length;
     updateModelSummary(list);
 }
 
-// 요약 화면에서 보유처 클릭 시 상세 내역 렌더링
-function holderDetailFromSearch(h){ render(currentList.filter(r=>r.보유처===h)); }
+function holderDetailFromSearch(h){ render(currentList.filter(r => r.보유처 === h)); }
 
-// 90일 이상 장기 재고 검색
-function oldStock(){ hideGroups(); render(rawData.filter(r=>parseInt(r.출고경과일)>=90)); }
+function oldStock(){ hideGroups(); render(rawData.filter(r => parseInt(r.출고경과일) >= 90)); }
 
-// 보유처 통계 버튼 누를 때 그룹 버튼 토글 및 요약 표시
 function toggleGroups(){
-    let g=document.getElementById("groupButtons");
-    let isHidden = (window.getComputedStyle(g).display === "none");
-    g.style.display=isHidden?"grid":"none";
-    if(isHidden) holderSummary(rawData); // 열릴 때 전체 요약 표시
+    let g = document.getElementById("groupButtons");
+    g.style.display = (g.style.display === "grid") ? "none" : "grid";
+    if(g.style.display === "grid") holderSummary(rawData);
 }
 
-function hideGroups(){ document.getElementById("groupButtons").style.display="none"; }
+function hideGroups(){ document.getElementById("groupButtons").style.display = "none"; }
 
-// 민기/준호 등 그룹 버튼 클릭 시 필터링
-function filterByHolder(k){ holderSummary(rawData.filter(r=>(r.보유처||"").includes(k))); }
+function filterByHolder(k){ holderSummary(rawData.filter(r => (r.보유처||"").includes(k))); }
 
-// 보유처별 요약 리스트 렌더링
 function holderSummary(list){
-    let s={};
-    list.forEach(r=>{ let h=r.보유처||"기타"; s[h]=(s[h]||0)+1; });
-    let html="";
-    Object.entries(s).sort((a,b)=>a[0].localeCompare(b[0],'ko')).forEach(([h,count])=>{
-        // 클릭 시 상세 내역으로 이동
-        html+=`<tr onclick="holderDetail('${h}')" style="cursor:pointer; background:#f9f9f9;"><td colspan="5" style="text-align:left; padding-left:15px;">${h}</td><td style="font-weight:bold; color:#2c7be5;">${count}대</td></tr>`;
+    let s = {};
+    list.forEach(r => { let h = r.보유처||"기타"; s[h] = (s[h]||0)+1; });
+    let html = "";
+    Object.entries(s).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([h, count]) => {
+        html += `<tr onclick="holderDetail('${h}')" style="cursor:pointer;"><td colspan="4" style="text-align:left; padding-left:10px;">${h}</td><td>${count}대</td></tr>`;
     });
-    document.getElementById("result").innerHTML=html;
-    document.getElementById("total").innerText=list.length;
+    document.getElementById("result").innerHTML = html;
+    document.getElementById("total").innerText = list.length;
     updateModelSummary(list);
 }
 
-// 요약 리스트에서 클릭 시 상세 내역 표시
-function holderDetail(h){ render(rawData.filter(r=>r.보유처===h)); }
+function holderDetail(h){ render(rawData.filter(r => r.보유처 === h)); }
 
-// 기본 데이터 테이블 렌더링 함수
 function render(list){
-    // 모델명 내림차순 정렬
-    list.sort((a,b)=>(b.모델명||"").toString().localeCompare((a.모델명||"").toString()));
-    document.getElementById("total").innerText=list.length;
-    let html="";
-    if(list.length === 0) {
-        html = "<tr><td colspan='6'>검색 결과가 없습니다.</td></tr>";
-    } else {
-        list.forEach(r=>{
-            let d=parseInt(r.출고경과일)||0;
-            // 경과일에 따른 색상 클래스
-            let c=(d<=30)?"stock-green":(d<=90)?"stock-orange":"stock-red";
-            html+=`<tr><td>${r.모델명||""}</td><td>${r.색상||""}</td><td>${r.일련번호||""}</td><td>${r.상위그룹||""}</td><td>${r.보유처||""}</td><td class="${c}">${d}</td></tr>`;
-        });
-    }
-    document.getElementById("result").innerHTML=html;
+    list.sort((a,b) => (b.모델명||"").toString().localeCompare((a.모델명||"").toString()));
+    document.getElementById("total").innerText = list.length;
+    let html = "";
+    list.forEach(r => {
+        let d = parseInt(r.출고경과일)||0;
+        let c = (d<=30) ? "stock-green" : (d<=90) ? "stock-orange" : "stock-red";
+        html += `<tr>
+            <td data-label="모델">${r.모델명||""}</td>
+            <td data-label="색상">${r.색상||""}</td>
+            <td data-label="일련번호">${r.일련번호||""}</td>
+            <td data-label="보유처">${r.보유처||""}</td>
+            <td data-label="경과일" class="${c}">${d}</td>
+        </tr>`;
+    });
+    document.getElementById("result").innerHTML = html || "<tr><td colspan='5'>결과 없음</td></tr>";
     updateModelSummary(list);
 }
 
-// 카드 상단 모델별 요약 업데이트
 function updateModelSummary(list){
-    let s={}; 
-    list.forEach(r=>{ if(r.모델명) s[r.모델명]=(s[r.모델명]||0)+1; });
-    let html=""; 
-    // 모델명 오름차순 정렬 후 출력
-    Object.keys(s).sort().forEach(m=>{ html+=`<span style="display:inline-block; margin-right:15px;">${m} : <b>${s[m]}대</b></span>`; });
-    if(html==="") html = "데이터 없음";
-    document.getElementById("modelSummary").innerHTML=html;
+    let s = {}; list.forEach(r => { if(r.모델명) s[r.모델명] = (s[r.모델명]||0)+1; });
+    let html = "";
+    Object.keys(s).sort().forEach(m => {
+        html += `<span style="display:inline-block; margin-right:10px;">${m}:<b>${s[m]}</b></span> `;
+    });
+    document.getElementById("modelSummary").innerHTML = html || "-";
 }
 </script>
 </body>
