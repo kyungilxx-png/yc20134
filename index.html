@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -80,6 +80,8 @@
     }
 
     button.main-btn.old { background: #ff6b6b; }
+    /* 복사 버튼 스타일 */
+    button.main-btn.copy { background: #4caf50; }
 
     .group-container {
         display: none; 
@@ -172,6 +174,7 @@
         <button class="main-btn" onclick="search()">검색</button>
         <button class="main-btn old" onclick="oldStock()">90일 이상 재고</button>
         <button class="main-btn" onclick="toggleGroups()">보유처별 재고 통계</button>
+        <button class="main-btn copy" onclick="copyResults()">결과 복사하기</button>
         
         <div id="groupButtons" class="group-container">
             <button class="btn-group" onclick="filterByHolder('민기')">민기</button>
@@ -280,9 +283,12 @@ function showHolderColorSummary(list){
     updateModelSummary(list);
 }
 
-function holderDetailFromSearch(h){ render(currentList.filter(r => r.보유처 === h)); }
+function holderDetailFromSearch(h){ 
+    currentList = currentList.filter(r => r.보유처 === h);
+    render(currentList); 
+}
 
-function oldStock(){ hideGroups(); render(rawData.filter(r => parseInt(r.출고경과일) >= 90)); }
+function oldStock(){ hideGroups(); currentList = rawData.filter(r => parseInt(r.출고경과일) >= 90); render(currentList); }
 
 function toggleGroups(){
     let g = document.getElementById("groupButtons");
@@ -292,7 +298,10 @@ function toggleGroups(){
 
 function hideGroups(){ document.getElementById("groupButtons").style.display = "none"; }
 
-function filterByHolder(k){ holderSummary(rawData.filter(r => (r.보유처||"").includes(k))); }
+function filterByHolder(k){ 
+    currentList = rawData.filter(r => (r.보유처||"").includes(k));
+    holderSummary(currentList); 
+}
 
 function holderSummary(list){
     let s = {};
@@ -306,9 +315,13 @@ function holderSummary(list){
     updateModelSummary(list);
 }
 
-function holderDetail(h){ render(rawData.filter(r => r.보유처 === h)); }
+function holderDetail(h){ 
+    currentList = rawData.filter(r => r.보유처 === h);
+    render(currentList); 
+}
 
 function render(list){
+    currentList = list; // 현재 화면에 보이는 리스트 동기화
     list.sort((a,b) => (b.모델명||"").toString().localeCompare((a.모델명||"").toString()));
     document.getElementById("total").innerText = list.length;
     let html = "";
@@ -334,6 +347,30 @@ function updateModelSummary(list){
         html += `<span style="display:inline-block; margin-right:10px;">${m}:<b>${s[m]}</b></span> `;
     });
     document.getElementById("modelSummary").innerHTML = html || "-";
+}
+
+// 복사 기능 함수 추가
+function copyResults() {
+    if (currentList.length === 0) {
+        alert("복사할 결과가 없습니다.");
+        return;
+    }
+    
+    let text = currentList.map(r => {
+        return `${r.모델명||""} ${r.색상||""} ${r.일련번호||""} ${r.보유처||""} ${r.출고경과일||0}일`;
+    }).join("\n");
+
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    document.body.appendChild(textArea);
+    textArea.select();
+    try {
+        document.execCommand('copy');
+        alert("결과가 클립보드에 복사되었습니다.");
+    } catch (err) {
+        alert("복사에 실패했습니다.");
+    }
+    document.body.removeChild(textArea);
 }
 </script>
 </body>
