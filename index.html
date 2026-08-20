@@ -254,8 +254,9 @@ function search(){
     let colorGroup = normalizeColor(color);
 
     let result = rawData.filter(row => {
-        return (model === "" || modelGroup.some(m=>(row.모델명||"").toString().includes(m)))
-        && (color === "" || colorGroup.some(c=>(row.색상||"").toString().includes(c)))
+        let rowModel = (row.모델명||"").toString().trim();
+        return (model === "" || modelGroup.some(m => rowModel === m))
+        && (color === "" || colorGroup.some(c => (row.색상||"").toString().includes(c)))
         && (row.보유처||"").toString().includes(holder)
         && (row.일련번호||"").toString().includes(serial);
     });
